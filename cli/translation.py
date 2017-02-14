@@ -169,20 +169,26 @@ class XLIFFTranslator(Translator):
 
 class InteractiveTranslator(Translator):
     def __init__(self, node, context_string=None, context_file=None, context_vector=None,
-                 print_nbest=False, nbest_file=None):
+                 print_nbest=False, nbest_file=None, debug=True):
         Translator.__init__(self, node, context_string, context_file, context_vector, print_nbest, nbest_file)
 
-        print '\nModernMT Translate command line'
+	self._debug = debug
+
+        if self._debug == True:
+	    print '\nModernMT Translate command line'
 
         if self._context:
             norm = sum([e['score'] for e in self._context])
-            print '>> Context:', ', '.join(
-                ['%s %.f%%' % (self._domain_to_string(score['domain']), round(score['score'] * 100 / norm)) for score in self._context]
-            )
+            if self._debug == True:
+                print '>> Context:', ', '.join(
+                    ['%s %.f%%' % (self._domain_to_string(score['domain']), round(score['score'] * 100 / norm)) for score in self._context]
+                )
         else:
-            print '>> No context provided.'
+            if self._debug == True:
+                print '>> No context provided.'
 
-        print
+        if self._debug == True:
+	    print
 
     @staticmethod
     def _domain_to_string(domain):
@@ -191,7 +197,7 @@ class InteractiveTranslator(Translator):
         else:
             return domain['name']
 
-    def xexecute(self, line):
+    def xexecute(self, line, prefix=">>"):
         if len(line) == 0:
             return
 
@@ -202,8 +208,14 @@ class InteractiveTranslator(Translator):
                 for nbest in translation['nbest']:
                     self._nbest_out.write((u' ||| '.join(self._encode_nbest(nbest))).encode('utf-8'))
                     self._nbest_out.write('\n')
+            if self._debug == True:
+                print '>>', self._encode_translation(translation)
+            else:
+                print self._encode_translation(translation)
 
-            print '>>', self._encode_translation(translation)
+###            print '>>', self._encode_translation(translation)
+
+
         except requests.exceptions.ConnectionError:
             raise IllegalStateException('connection problem: MMT server not running, start it with "./mmt start"')
         except requests.exceptions.HTTPError as e:

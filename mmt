@@ -5,6 +5,8 @@ import shutil
 import socket
 import sys
 
+from time import sleep
+
 from cli import dependency, IllegalStateException, IllegalArgumentException
 from cli.cluster import ClusterNode, DEFAULT_MMT_API_PORT, DEFAULT_MMT_CLUSTER_PORTS, DEFAULT_MMT_DATASTREAM_PORT
 from cli.engine import MMTEngine
@@ -469,6 +471,9 @@ def main_translate_online(argv):
                         help='the public available REST Api port. (default is {port})'
                         .format(port=DEFAULT_MMT_API_PORT), default=None, type=int)
 
+    parser.add_argument('--delay', dest='delay',  type=float, help='delay in seconds between two consecutive translation, \'default\' is 0.5',
+                        default=0.5)
+
     args = parser.parse_args(argv)
 
     engine = MMTEngine.load(args.engine)
@@ -481,14 +486,14 @@ def main_translate_online(argv):
 
     # get all source sentences
     source_lines = []
-    with open(corpus.get_file(self.source_lang)) as source:
+    with open(args.source_file) as source:
         for line in source:
             source_lines.append(line)
 
     line_count = len(source_lines)
     # get all feedback sentences
     feedback_lines = []
-    with open(corpus.get_file(self.source_lang)) as feedback:
+    with open(args.feedback_file) as feedback:
         for line in feedback:
             feedback_lines.append(line)
 
@@ -499,7 +504,7 @@ def main_translate_online(argv):
     # get domain id
     try:
         idx = 0
-        while idx < len :
+        while idx < line_count :
 
             source_line = source_lines[idx]
             feedback_line = feedback_lines[idx]
@@ -508,29 +513,29 @@ def main_translate_online(argv):
             domain = node.get_or_create_domain(args.domain)
 
             # get context vector
-            context = node.api.get_context_f(args.source_file)
-            context_vector = node.api.__parse_context_vector(context)
+            context_vector = node.api.get_context_f(args.source_file)
 
             # force actual domain to the highest score
             for ctx in context_vector:
-                if ctx['domain'] == domain:
+                if ctx['domain']['id'] == domain:
                     ctx['score'] = 1.0
                     break
 
             # get translator with the current context vector
             context = node.api._encode_context(context_vector)
-            translator = BatchTranslator(node, context_vector=context,
+            translator = InteractiveTranslator(node, context_vector=context,
                                          print_nbest=args.nbest,
-                                         nbest_file=args.nbest_file)
+                                         nbest_file=args.nbest_file, debug=False)
             # translate the sentence
-            translator.execute(source_line.strip())
+            translator.xexecute(source_line.strip())
 
             translator.flush()
 
             # update the engine with source_line and feedback_line
             node.append_to_domain(domain, source_line, feedback_line)
 
-            idx++
+            idx += 1
+	    sleep(args.delay)
 
 
     except KeyboardInterrupt:
@@ -538,6 +543,8 @@ def main_translate_online(argv):
         pass
     finally:
         translator.close()
+
+#    print 'SUCCESS - translate-online of ' + args.source_file + ' and ' + args.feedback_file + ' in domain "' + args.domain + '"'
 
 
 def main_add(argv):
@@ -548,8 +555,7 @@ def main_add(argv):
     parser.add_argument('target', metavar='TARGET_SENTENCE', help='The target sentence of the contribution')
 
     # Mixed arguments
-    parser.add_argument('-e', '--engine', dest='engine', help='the engine name, \'default\' will be used if absent',
-                        default='default')
+    parser.add_argument('-e', '--engine', dest='engine', help='the engine name, \'default\' will be used if absent', default='default')
     parser.add_argument('-p', '--api-port', dest='api_port', metavar='API_PORT',
                         help='the public available REST Api port. (default is {port})'
                         .format(port=DEFAULT_MMT_API_PORT), default=None, type=int)
@@ -653,7 +659,7 @@ def main():
         sys.stderr.write('ERROR Unexpected exception:\n\t{message}\n'.format(message=repr(e)))
         raise
         exit(1)
-
+            
 
 if __name__ == '__main__':
     __check_java()
