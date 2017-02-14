@@ -636,3 +636,20 @@ class ClusterNode(object):
                 domain = ids[0]
 
         return self.api.append_to_domain(domain, source, target)
+
+    def get_or_create_domain(self, domain):
+        try:
+            domain = int(domain)
+        except ValueError:
+            domains = self.api.get_all_domains()
+            ids = [d['id'] for d in domains if d['name'] == domain]
+
+            if len(ids) > 1:
+                raise IllegalArgumentException(
+                    'ambiguous domain name "' + domain + '", choose one of the following ids: ' + str(ids))
+            elif len(ids) == 0:
+                domain = self.api.create_domain(name)
+            else:
+                domain = ids[0]
+
+        return domain

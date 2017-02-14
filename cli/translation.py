@@ -191,7 +191,7 @@ class InteractiveTranslator(Translator):
         else:
             return domain['name']
 
-    def execute(self, line):
+    def xexecute(self, line):
         if len(line) == 0:
             return
 

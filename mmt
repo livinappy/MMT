@@ -364,6 +364,7 @@ def main_create(argv):
 
 def main_translate(argv):
     parser = argparse.ArgumentParser(description='Translate text with ModernMT')
+    parser.prog = 'mmt traanslate'
 
     parser.add_argument('text', metavar='TEXT', help='text to be translated (optional)', default=None, nargs='?')
 
@@ -426,6 +427,112 @@ def main_translate(argv):
                 translator.execute(line.strip())
 
         translator.flush()
+    except KeyboardInterrupt:
+        # exit
+        pass
+    finally:
+        translator.close()
+
+
+def main_translate_online(argv):
+    parser = argparse.ArgumentParser(description='Translate text with ModernMT')
+    parser.prog = 'mmt translate-online'
+
+    # Input and feedabck arguments
+    parser.add_argument('--source-file', metavar='SOURCE_FILE', dest='source_file',
+                        help='A local file to be used as inout')
+    parser.add_argument('--feedback-file', metavar='FEEDBACK_FILE', dest='feedback_file',
+                        help='A local file to be used as feedback')
+
+    # Domain argument
+    parser.add_argument('--domain', metavar='DOMAIN_NAME', dest='domain',
+                        help='The domain associated to the source and feedback lcoal files')
+
+    # # Context arguments
+    # parser.add_argument('--context', metavar='CONTEXT', dest='context',
+    #                     help='A string to be used as translation context')
+    # parser.add_argument('--context-file', metavar='CONTEXT_FILE', dest='context_file',
+    #                     help='A local file to be used as translation context')
+    # parser.add_argument('--context-vector', metavar='CONTEXT_VECTOR', dest='context_vector',
+    #                     help='The context vector with format: <document 1>:<score 1>[,<document N>:<score N>]')
+
+    # NBest list arguments
+    parser.add_argument('--nbest', metavar='NBEST', dest='nbest', default=None, type=int,
+                        help='The number of nbest to print')
+    parser.add_argument('--nbest-file', metavar='NBEST_FILE', dest='nbest_file', default=None,
+                        help='The destination file for the NBest, default is stdout')
+
+    # Mixed arguments
+    parser.add_argument('-e', '--engine', dest='engine', help='the engine name, \'default\' will be used if absent',
+                        default='default')
+    parser.add_argument('-p', '--api-port', dest='api_port', metavar='API_PORT',
+                        help='the public available REST Api port. (default is {port})'
+                        .format(port=DEFAULT_MMT_API_PORT), default=None, type=int)
+
+    args = parser.parse_args(argv)
+
+    engine = MMTEngine.load(args.engine)
+    if not engine.exists():
+        raise IllegalStateException('engine not found: ' + args.engine)
+
+    node = ClusterNode(engine, api_port=args.api_port)
+    if not node.is_running():
+        raise IllegalStateException('engine not running: ' + args.engine)
+
+    # get all source sentences
+    source_lines = []
+    with open(corpus.get_file(self.source_lang)) as source:
+        for line in source:
+            source_lines.append(line)
+
+    line_count = len(source_lines)
+    # get all feedback sentences
+    feedback_lines = []
+    with open(corpus.get_file(self.source_lang)) as feedback:
+        for line in feedback:
+            feedback_lines.append(line)
+
+    # check whether the amount of source and feedback sentences differs
+    if not len(feedback_lines) == line_count :
+        raise ValueError('The amount of source and feedback sentences differs')
+
+    # get domain id
+    try:
+        idx = 0
+        while idx < len :
+
+            source_line = source_lines[idx]
+            feedback_line = feedback_lines[idx]
+
+            # get domain id and create a new domain, if not present
+            domain = node.get_or_create_domain(args.domain)
+
+            # get context vector
+            context = node.api.get_context_f(args.source_file)
+            context_vector = node.api.__parse_context_vector(context)
+
+            # force actual domain to the highest score
+            for ctx in context_vector:
+                if ctx['domain'] == domain:
+                    ctx['score'] = 1.0
+                    break
+
+            # get translator with the current context vector
+            context = node.api._encode_context(context_vector)
+            translator = BatchTranslator(node, context_vector=context,
+                                         print_nbest=args.nbest,
+                                         nbest_file=args.nbest_file)
+            # translate the sentence
+            translator.execute(source_line.strip())
+
+            translator.flush()
+
+            # update the engine with source_line and feedback_line
+            node.append_to_domain(domain, source_line, feedback_line)
+
+            idx++
+
+
     except KeyboardInterrupt:
         # exit
         pass
@@ -502,6 +609,7 @@ def main():
         'evaluate': main_evaluate,
         'tune': main_tune,
         'translate': main_translate,
+        'translate_online': main_translate_online,
         'add': main_add,
         'import': main_import,
     }
