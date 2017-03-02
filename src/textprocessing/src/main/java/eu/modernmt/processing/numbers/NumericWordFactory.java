@@ -1,26 +1,24 @@
 package eu.modernmt.processing.numbers;
 
 import eu.modernmt.model.Word;
-import eu.modernmt.processing.SentenceBuilder;
 
 import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
  * Created by davide on 04/04/16.
+ * Updated by andrearossi on 01/03/2017
  */
-public class NumericWordFactory implements SentenceBuilder.WordFactory {
+//public class NumericWordFactory implements SentenceBuilder.WordFactory {
+
+public class NumericWordFactory {
 
     private static final Pattern PATTERN = Pattern.compile(".*[0-9].*");
 
-    // SentenceBuilder.WordFactory
-
-    @Override
     public boolean match(String text, String placeholder) {
         return PATTERN.matcher(text).find();
     }
 
-    @Override
     public Word build(String text, String placeholder, String rightSpace) {
         char[] chars = placeholder.toCharArray();
 
@@ -29,7 +27,6 @@ public class NumericWordFactory implements SentenceBuilder.WordFactory {
         return new Word(text, new String(chars), rightSpace);
     }
 
-    @Override
     public void setMetadata(Map<String, Object> metadata) {
         // Nothing to do
     }
@@ -43,5 +40,4 @@ public class NumericWordFactory implements SentenceBuilder.WordFactory {
                 chars[i] = d;
         }
     }
-
 }

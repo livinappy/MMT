@@ -25,6 +25,7 @@ public class VocabularyLookup extends TextProcessor<Sentence, Sentence> {
 
     @Override
     public Sentence call(Sentence sentence, Map<String, Object> metadata) throws ProcessingException {
+
         Vocabulary vocabulary = (Vocabulary) metadata.get(KEY_VOCABULARY);
 
         if (vocabulary != null) {

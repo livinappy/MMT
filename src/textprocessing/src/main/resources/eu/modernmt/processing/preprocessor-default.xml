@@ -2,7 +2,9 @@
     <!-- Pre EditableString processors -->
     <processor>eu.modernmt.processing.chars.ControlCharsRemover</processor>
     <processor>eu.modernmt.processing.xmessage.XMessageParser</processor>
-    <processor>eu.modernmt.processing.xml.XMLStringBuilder</processor>
+    <processor>eu.modernmt.processing.string.SentenceConstructor</processor>
+
+    <!-- <processor>eu.modernmt.processing.xml.XMLStringBuilder</processor> -->
 
     <!-- String normalization -->
     <processor>eu.modernmt.processing.chars.RareCharsNormalizer</processor>
@@ -42,7 +44,7 @@
     </processor>
 
     <processor>
-        eu.modernmt.processing.SentenceBuilder
+        eu.modernmt.processing.string.SentenceCompiler
     </processor>
 
     <processor>
